@@ -7,10 +7,9 @@ import { AddLiquidity } from "@/components/dex/AddLiquidity"
 import { Account } from "@/components/dex/Account"
 import { DeployContracts } from "@/components/dex/DeployContracts"
 import { PriceChart } from "@/components/dex/PriceChart"
-import { PoolStats } from "@/components/dex/PoolStats"
 import { WalletAnalytics } from "@/components/dex/WalletAnalytics"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeftRight, Wallet, Rocket, Coins, BarChart3, Droplets, PieChart } from "lucide-react"
+import { ArrowLeftRight, Wallet, Rocket, Coins, BarChart3, PieChart } from "lucide-react"
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("swap")
@@ -50,7 +49,7 @@ export default function Home() {
 
         {/* MAIN DEX */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-7 mb-10 bg-secondary/50 p-1 rounded-xl">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-6 mb-10 bg-secondary/50 p-1 rounded-xl">
             <TabsTrigger value="swap" className="rounded-lg text-xs sm:text-sm">
               <ArrowLeftRight className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Swap</span>
@@ -59,11 +58,6 @@ export default function Home() {
             <TabsTrigger value="charts" className="rounded-lg text-xs sm:text-sm">
               <BarChart3 className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Charts</span>
-            </TabsTrigger>
-
-            <TabsTrigger value="pools" className="rounded-lg text-xs sm:text-sm">
-              <Droplets className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Pools</span>
             </TabsTrigger>
 
             <TabsTrigger value="analytics" className="rounded-lg text-xs sm:text-sm">
@@ -93,10 +87,6 @@ export default function Home() {
 
           <TabsContent value="charts">
             <PriceChart />
-          </TabsContent>
-
-          <TabsContent value="pools">
-            <PoolStats />
           </TabsContent>
 
           <TabsContent value="analytics">
