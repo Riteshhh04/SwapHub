@@ -6,8 +6,10 @@ import { SwapInterface } from "@/components/dex/SwapInterface"
 import { AddLiquidity } from "@/components/dex/AddLiquidity"
 import { Account } from "@/components/dex/Account"
 import { DeployContracts } from "@/components/dex/DeployContracts"
+import { PriceChart } from "@/components/dex/PriceChart"
+import { WalletAnalytics } from "@/components/dex/WalletAnalytics"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeftRight, Wallet, Rocket, Coins } from "lucide-react"
+import { ArrowLeftRight, Wallet, Rocket, Coins, BarChart3, PieChart } from "lucide-react"
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("swap")
@@ -47,25 +49,35 @@ export default function Home() {
 
         {/* MAIN DEX */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-10 bg-secondary/50 p-1 rounded-xl">
-            <TabsTrigger value="swap" className="rounded-lg">
-              <ArrowLeftRight className="w-4 h-4 mr-2" />
-              Swap
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-6 mb-10 bg-secondary/50 p-1 rounded-xl">
+            <TabsTrigger value="swap" className="rounded-lg text-xs sm:text-sm">
+              <ArrowLeftRight className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Swap</span>
             </TabsTrigger>
 
-            <TabsTrigger value="liquidity" className="rounded-lg">
-              <Coins className="w-4 h-4 mr-2" />
-              Tokens
+            <TabsTrigger value="charts" className="rounded-lg text-xs sm:text-sm">
+              <BarChart3 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Charts</span>
             </TabsTrigger>
 
-            <TabsTrigger value="account" className="rounded-lg">
-              <Wallet className="w-4 h-4 mr-2" />
-              Account
+            <TabsTrigger value="analytics" className="rounded-lg text-xs sm:text-sm">
+              <PieChart className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
 
-            <TabsTrigger value="deploy" className="rounded-lg">
-              <Rocket className="w-4 h-4 mr-2" />
-              Deploy
+            <TabsTrigger value="tokens" className="rounded-lg text-xs sm:text-sm">
+              <Coins className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Tokens</span>
+            </TabsTrigger>
+
+            <TabsTrigger value="account" className="rounded-lg text-xs sm:text-sm">
+              <Wallet className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Account</span>
+            </TabsTrigger>
+
+            <TabsTrigger value="deploy" className="rounded-lg text-xs sm:text-sm">
+              <Rocket className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Deploy</span>
             </TabsTrigger>
           </TabsList>
 
@@ -73,7 +85,15 @@ export default function Home() {
             <SwapInterface />
           </TabsContent>
 
-          <TabsContent value="liquidity">
+          <TabsContent value="charts">
+            <PriceChart />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <WalletAnalytics />
+          </TabsContent>
+
+          <TabsContent value="tokens">
             <AddLiquidity />
           </TabsContent>
 

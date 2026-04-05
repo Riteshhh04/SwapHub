@@ -3,7 +3,7 @@
 import { useWeb3, TOKENS } from "@/context/Web3Context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { RefreshCw, Plus, Wallet, ExternalLink, Copy, Check } from "lucide-react"
+import { RefreshCw, Plus, Wallet, ExternalLink, Copy, Check, History, ArrowUpRight, ArrowDownLeft, Clock } from "lucide-react"
 import { useState } from "react"
 
 export function Account() {
@@ -16,7 +16,11 @@ export function Account() {
     refreshBalances, 
     addTokenToWallet,
     connectWallet,
-    getSimulatedBalance
+    getSimulatedBalance,
+    tokenPrices,
+    transactions,
+    refreshPrices,
+    pricesLoading,
   } = useWeb3()
   
   const [copied, setCopied] = useState(false)
@@ -127,18 +131,28 @@ export function Account() {
 
         {/* Token Balances */}
         <div className="space-y-3">
-          <h3 className="font-semibold">Token Balances</h3>
-          <div className="grid gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Token Balances</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshPrices}
+              disabled={pricesLoading}
+              className="text-xs text-muted-foreground"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${pricesLoading ? "animate-spin" : ""}`} />
+              Refresh Prices
+            </Button>
+          </div>
+          <div className="grid gap-3 max-h-80 overflow-y-auto">
             {Object.entries(TOKENS).map(([key, token]) => {
               // Get balance - ETH from tokenBalances, others from simulated
               const balanceValue = key === "ETH" 
                 ? ethBalance 
                 : getSimulatedBalance(key).toFixed(4)
-              const usdValue = key === "ETH" || key === "WETH"
-                ? (parseFloat(balanceValue) * 2000).toFixed(2)
-                : key === "USDC" || key === "DAI"
-                ? parseFloat(balanceValue).toFixed(2)
-                : (parseFloat(balanceValue) * 0.2).toFixed(2)
+              // Use real prices from API
+              const tokenPrice = tokenPrices[key] || 0
+              const usdValue = (parseFloat(balanceValue) * tokenPrice).toFixed(2)
 
               return (
                 <div
@@ -156,7 +170,10 @@ export function Account() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">{parseFloat(balanceValue).toFixed(4)}</div>
-                    <div className="text-sm text-muted-foreground">≈ ${usdValue}</div>
+                    <div className="text-sm text-muted-foreground">
+                      ≈ ${usdValue} 
+                      <span className="text-xs ml-1 opacity-60">(${tokenPrice.toFixed(2)})</span>
+                    </div>
                   </div>
                   {key !== "ETH" && (
                     <Button
@@ -179,15 +196,93 @@ export function Account() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Total Portfolio Value</span>
             <span className="text-2xl font-bold">
-              ${(
-                parseFloat(ethBalance) * 2000 +
-                getSimulatedBalance("USDC") +
-                getSimulatedBalance("DAI") +
-                getSimulatedBalance("WETH") * 2000 +
-                getSimulatedBalance("RYAN") * 0.2
-              ).toFixed(2)}
+              ${Object.entries(TOKENS).reduce((total, [key]) => {
+                const balance = key === "ETH" 
+                  ? parseFloat(ethBalance) 
+                  : getSimulatedBalance(key)
+                const price = tokenPrices[key] || 0
+                return total + (balance * price)
+              }, 0).toFixed(2)}
             </span>
           </div>
+        </div>
+
+        {/* Transaction History */}
+        <div className="space-y-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <History className="w-4 h-4 text-lime-400" />
+            Transaction History
+          </h3>
+          {transactions.length === 0 ? (
+            <div className="text-center py-8 bg-secondary/30 rounded-xl">
+              <Clock className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-muted-foreground text-sm">No transactions yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Your swap transactions will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {transactions.slice(0, 10).map((tx) => (
+                <div
+                  key={tx.hash}
+                  className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        tx.type === "swap"
+                          ? "bg-lime-400/20"
+                          : tx.type === "liquidity"
+                          ? "bg-blue-400/20"
+                          : "bg-purple-400/20"
+                      }`}
+                    >
+                      {tx.type === "swap" ? (
+                        <ArrowUpRight className="w-4 h-4 text-lime-400" />
+                      ) : (
+                        <ArrowDownLeft className="w-4 h-4 text-blue-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">
+                        {tx.type === "swap"
+                          ? `${tx.fromToken} → ${tx.toToken}`
+                          : `Add ${tx.fromToken}`}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {tx.fromAmount} {tx.fromToken}
+                        {tx.toAmount && ` → ${tx.toAmount} ${tx.toToken}`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div
+                      className={`text-xs font-medium ${
+                        tx.status === "success"
+                          ? "text-emerald-400"
+                          : tx.status === "pending"
+                          ? "text-yellow-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {tx.status}
+                    </div>
+                    <a
+                      href={`https://etherscan.io/tx/${tx.hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground hover:text-lime-400 flex items-center gap-1 justify-end"
+                    >
+                      {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <div className="text-xs text-muted-foreground/60">
+                      {new Date(tx.timestamp).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

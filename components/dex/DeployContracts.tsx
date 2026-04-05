@@ -13,8 +13,11 @@ export function DeployContracts() {
   const [mintAmounts, setMintAmounts] = useState<Record<string, string>>({
     USDC: "10000",
     DAI: "10000",
-    WETH: "100",
-    RYAN: "100000",
+    WETH: "5",
+    LINK: "500",
+    UNI: "1000",
+    AAVE: "100",
+    MATIC: "5000",
   })
   const [txHash, setTxHash] = useState("")
   const [isDeployingAll, setIsDeployingAll] = useState(false)

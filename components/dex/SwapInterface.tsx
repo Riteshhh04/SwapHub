@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWeb3, TOKENS, EXCHANGE_RATES, parseEther } from "@/context/Web3Context"
+import { useWeb3, TOKENS, parseEther, type Transaction } from "@/context/Web3Context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { TokenSelector } from "./TokenSelector"
-import { ArrowDownUp, Settings, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { ArrowDownUp, Settings, Loader2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react"
 
 type SwapStatus = "idle" | "swapping" | "success" | "error"
 
@@ -19,7 +19,13 @@ export function SwapInterface() {
     updateSimulatedBalance,
     mintTokens,
     refreshBalances, 
-    tokensDeployed 
+    tokensDeployed,
+    tokenPrices,
+    getExchangeRate,
+    refreshPrices,
+    pricesLoading,
+    addTransaction,
+    updateTransactionStatus,
   } = useWeb3()
   
   const [fromToken, setFromToken] = useState("ETH")
@@ -30,16 +36,16 @@ export function SwapInterface() {
   const [txHash, setTxHash] = useState("")
   const [error, setError] = useState("")
 
-  // Calculate exchange rate
+  // Calculate exchange rate using real prices
   useEffect(() => {
     if (fromAmount && !isNaN(parseFloat(fromAmount))) {
-      const rate = EXCHANGE_RATES[fromToken]?.[toToken] || 0
+      const rate = getExchangeRate(fromToken, toToken)
       const calculated = parseFloat(fromAmount) * rate
       setToAmount(calculated.toFixed(6))
     } else {
       setToAmount("")
     }
-  }, [fromAmount, fromToken, toToken])
+  }, [fromAmount, fromToken, toToken, getExchangeRate])
 
   const switchTokens = () => {
     setFromToken(toToken)
@@ -82,6 +88,7 @@ export function SwapInterface() {
     try {
       // Pool address for receiving tokens
       const poolAddress = "0x000000000000000000000000000000000000dEaD"
+      let txHashResult = ""
       
       if (fromToken === "ETH") {
         // ETH -> Token swap
@@ -91,7 +98,22 @@ export function SwapInterface() {
           value: parseEther(fromAmount),
           gasLimit: 21000n,
         })
+        txHashResult = tx.hash
         setTxHash(tx.hash)
+        
+        // Add pending transaction
+        const pendingTx: Transaction = {
+          hash: tx.hash,
+          type: "swap",
+          fromToken,
+          toToken,
+          fromAmount,
+          toAmount,
+          timestamp: Date.now(),
+          status: "pending",
+        }
+        addTransaction(pendingTx)
+        
         await tx.wait()
         
         // Add received tokens to simulated balance
@@ -109,7 +131,22 @@ export function SwapInterface() {
           value: parseEther("0.0001"),
           gasLimit: 21000n,
         })
+        txHashResult = tx.hash
         setTxHash(tx.hash)
+        
+        // Add pending transaction
+        const pendingTx: Transaction = {
+          hash: tx.hash,
+          type: "swap",
+          fromToken,
+          toToken,
+          fromAmount,
+          toAmount,
+          timestamp: Date.now(),
+          status: "pending",
+        }
+        addTransaction(pendingTx)
+        
         await tx.wait()
         
         // Note: In demo mode, ETH balance won't increase since we can't mint real ETH
@@ -127,13 +164,30 @@ export function SwapInterface() {
           value: parseEther("0.0001"),
           gasLimit: 21000n,
         })
+        txHashResult = tx.hash
         setTxHash(tx.hash)
+        
+        // Add pending transaction
+        const pendingTx: Transaction = {
+          hash: tx.hash,
+          type: "swap",
+          fromToken,
+          toToken,
+          fromAmount,
+          toAmount,
+          timestamp: Date.now(),
+          status: "pending",
+        }
+        addTransaction(pendingTx)
+        
         await tx.wait()
         
         // Add "to" tokens
         mintTokens(toToken, toAmountNum)
       }
 
+      // Update transaction status to success
+      updateTransactionStatus(txHashResult, "success")
       setStatus("success")
       await refreshBalances()
       
@@ -146,6 +200,9 @@ export function SwapInterface() {
       console.error("Swap error:", err)
       setStatus("error")
       setError((err as Error).message || "Transaction failed")
+      if (txHash) {
+        updateTransactionStatus(txHash, "failed")
+      }
       setTimeout(() => setStatus("idle"), 5000)
     }
   }
@@ -193,7 +250,7 @@ export function SwapInterface() {
           </div>
           {isValidAmount && (
             <div className="text-sm text-muted-foreground">
-              ≈ ${(parseFloat(fromAmount) * (fromToken === "ETH" ? 2000 : 1)).toFixed(2)}
+              ≈ ${(parseFloat(fromAmount) * (tokenPrices[fromToken] || 0)).toFixed(2)}
             </div>
           )}
         </div>
@@ -232,10 +289,19 @@ export function SwapInterface() {
           </div>
         </div>
 
-        {/* Exchange Rate */}
+        {/* Exchange Rate with refresh button */}
         {isValidAmount && (
-          <div className="text-sm text-muted-foreground text-center py-2">
-            1 {fromToken} = {EXCHANGE_RATES[fromToken]?.[toToken] || 0} {toToken}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
+            <span>1 {fromToken} = {getExchangeRate(fromToken, toToken).toFixed(6)} {toToken}</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={refreshPrices}
+              disabled={pricesLoading}
+              className="h-6 w-6"
+            >
+              <RefreshCw className={`w-3 h-3 ${pricesLoading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
         )}
 
